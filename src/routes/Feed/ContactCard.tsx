@@ -39,8 +39,6 @@ const ContactCard: React.FC = () => {
         {CONFIG.profile.email && (
           <a
             href={`mailto:${CONFIG.profile.email}`}
-            rel="noreferrer"
-            target="_blank"
             css={{ overflow: "hidden" }}
           >
             <AiOutlineMail className="icon" />
