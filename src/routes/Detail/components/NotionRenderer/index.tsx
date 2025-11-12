@@ -89,4 +89,11 @@ const StyledWrapper = styled.div`
   .notion-list {
     width: 100%;
   }
+
+  /* 모바일에서 표 가로 스크롤 */
+  .notion-table,
+  .notion-collection-view-table {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
 `
