@@ -91,9 +91,16 @@ const StyledWrapper = styled.div`
   }
 
   /* 모바일에서 표 가로 스크롤 */
-  .notion-table,
-  .notion-collection-view-table {
+  .notion-simple-table {
+    display: block;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    width: 100%;
+  }
+
+  .notion-simple-table tbody,
+  .notion-simple-table thead {
+    display: table;
+    width: 100%;
   }
 `
