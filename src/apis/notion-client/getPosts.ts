@@ -13,23 +13,33 @@ import { TPosts } from "src/types"
 // TODO: react query를 사용해서 처음 불러온 뒤로는 해당데이터만 사용하도록 수정
 export const getPosts = async () => {
   let id = CONFIG.notionConfig.pageId as string
+
+  if (!id) {
+    console.error('❌ NOTION_PAGE_ID is not set!')
+    return []
+  }
+
   const api = new NotionAPI()
 
-  const response = await api.getPage(id)
-  id = idToUuid(id)
-  const collection = Object.values(response.collection)[0]?.value
-  const block = response.block
-  const schema = collection?.schema
+  try {
+    const response = await api.getPage(id)
+    id = idToUuid(id)
 
-  const rawMetadata = block[id].value
+    const collectionValue = Object.values(response.collection)[0]?.value as any
+    const collection = collectionValue?.value ?? collectionValue
+    const block = response.block
+    const schema = collection?.schema
 
-  // Check Type
-  if (
-    rawMetadata?.type !== "collection_view_page" &&
-    rawMetadata?.type !== "collection_view"
-  ) {
-    return []
-  } else {
+    const rawMetadata = (block[id].value as any)?.value ?? block[id].value
+
+    // Check Type
+    if (
+      rawMetadata?.type !== "collection_view_page" &&
+      rawMetadata?.type !== "collection_view"
+    ) {
+      console.error('❌ Page type is not a database! Type:', rawMetadata?.type)
+      return []
+    }
     // Construct Data
     const pageIds = getAllPageIds(response)
     const data = []
@@ -37,11 +47,9 @@ export const getPosts = async () => {
       const id = pageIds[i]
       const properties = (await getPageProperties(id, block, schema)) || null
       // Add fullwidth, createdtime to properties
-      properties.createdTime = new Date(
-        block[id].value?.created_time
-      ).toString()
-      properties.fullWidth =
-        (block[id].value?.format as any)?.page_full_width ?? false
+      const blockValue = (block[id].value as any)?.value ?? block[id].value
+      properties.createdTime = new Date(blockValue?.created_time).toString()
+      properties.fullWidth = blockValue?.format?.page_full_width ?? false
 
       data.push(properties)
     }
@@ -55,5 +63,8 @@ export const getPosts = async () => {
 
     const posts = data as TPosts
     return posts
+  } catch (error) {
+    console.error('❌ Error fetching posts from Notion:', error)
+    return []
   }
 }
