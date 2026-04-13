@@ -25,12 +25,51 @@ export const getPosts = async () => {
     const response = await api.getPage(id)
     id = idToUuid(id)
 
-    const collectionValue = Object.values(response.collection)[0]?.value as any
+    const collectionEntry = Object.entries(response.collection)[0] as
+      | [string, any]
+      | undefined
+    const collectionId = collectionEntry?.[0]
+    const collectionValue = collectionEntry?.[1]?.value as any
     const collection = collectionValue?.value ?? collectionValue
-    const block = response.block
     const schema = collection?.schema
 
-    const rawMetadata = (block[id].value as any)?.value ?? block[id].value
+    // Notion API no longer auto-populates collection_query from getPage,
+    // so fetch the collection data explicitly and merge its blocks in.
+    const block: any = { ...response.block }
+    if (collectionId) {
+      for (const [viewId, viewEntry] of Object.entries(
+        response.collection_view || {}
+      )) {
+        const rawView = (viewEntry as any)?.value
+        const view = rawView?.value ?? rawView
+        if (!view) continue
+        try {
+          const cd: any = await api.getCollectionData(
+            collectionId,
+            viewId,
+            view
+          )
+          Object.assign(block, cd?.recordMap?.block || {})
+          const reducerBlockIds =
+            cd?.result?.reducerResults?.collection_group_results?.blockIds ||
+            cd?.result?.blockIds ||
+            []
+          if (reducerBlockIds.length) {
+            response.collection_query[collectionId] = {
+              ...(response.collection_query[collectionId] || {}),
+              [viewId]: {
+                collection_group_results: { blockIds: reducerBlockIds },
+                blockIds: reducerBlockIds,
+              } as any,
+            }
+          }
+        } catch (e) {
+          console.error("❌ getCollectionData failed for view", viewId, e)
+        }
+      }
+    }
+
+    const rawMetadata = (block[id]?.value as any)?.value ?? block[id]?.value
 
     // Check Type
     if (
