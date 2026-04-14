@@ -40,3 +40,7 @@ yarn-error.log*
 # public/sitemap.xml
 
 /.firebase
+
+## Claude
+.claude
+CLAUDE.md
