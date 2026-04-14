@@ -9,31 +9,21 @@ async function getPageProperties(
   schema: CollectionPropertySchemaMap
 ) {
   const api = new NotionAPI()
-
-  try {
-    // Check if block structure has nested value or direct value
-    const blockValue = (block?.[id]?.value as any)?.value ?? block?.[id]?.value
-    const rawProperties = Object.entries(blockValue?.properties || [])
-    const excludeProperties = ["date", "select", "multi_select", "person", "file"]
-    const properties: any = {}
-
-    for (let i = 0; i < rawProperties.length; i++) {
-      try {
-        const [key, val]: any = rawProperties[i]
-        properties.id = id
-
-        // Skip if schema for this key doesn't exist
-        if (!schema || !schema[key]) {
-          continue
-        }
-
-        if (schema[key]?.type && !excludeProperties.includes(schema[key].type)) {
-          properties[schema[key].name] = getTextContent(val)
-        } else {
-          switch (schema[key]?.type) {
+  const blockEntry = block?.[id]?.value as any
+  const blockValue = blockEntry?.type ? blockEntry : blockEntry?.value ?? blockEntry
+  const rawProperties = Object.entries(blockValue?.properties || [])
+  const excludeProperties = ["date", "select", "multi_select", "person", "file"]
+  const properties: any = {}
+  for (let i = 0; i < rawProperties.length; i++) {
+    const [key, val]: any = rawProperties[i]
+    properties.id = id
+    if (schema[key]?.type && !excludeProperties.includes(schema[key].type)) {
+      properties[schema[key].name] = getTextContent(val)
+    } else {
+      switch (schema[key]?.type) {
         case "file": {
           try {
-            const Block = (block?.[id]?.value as any)?.value ?? block?.[id]?.value
+            const Block = blockValue
             const url: string = val[0][1][0][1]
             const newurl = customMapImageUrl(url, Block)
             properties[schema[key].name] = newurl
@@ -89,16 +79,9 @@ async function getPageProperties(
         default:
           break
       }
-        }
-      } catch (propError) {
-        // Skip this property if there's an error
-        continue
-      }
     }
-    return properties
-  } catch (error) {
-    return { id }
   }
+  return properties
 }
 
 export { getPageProperties as default }
